@@ -16,7 +16,7 @@ ifeq ($(UNAME_S),Linux)
 	CFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE
 endif
 
-DEBUG ?= 1
+DEBUG ?= 0
 ifeq ($(DEBUG),0)
 	CFLAGS += -O3 -flto -DNDEBUG
 else ifeq ($(UNAME_S),Darwin)
