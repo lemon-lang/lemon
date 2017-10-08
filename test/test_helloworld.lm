@@ -1,0 +1,7 @@
+import './test.lm';
+
+def hello(var name) {
+    print('Hello', name);
+}
+
+hello('World');

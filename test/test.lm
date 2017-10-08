@@ -1,0 +1,7 @@
+import 'os';
+
+def assert(var value) {
+	if (!value) {
+		os.exit(os.EXIT_FAILURE);
+	}
+}
