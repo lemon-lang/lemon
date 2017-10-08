@@ -119,7 +119,7 @@ obj:
 	@mkdir -p obj
 
 lemon: obj/main.o $(LIB) Makefile
-	$(CC) $(CFLAGS) $(LIB) $(LIBFLAGS) obj/main.o $(LDFLAGS) -o $@
+	$(CC) $(CFLAGS) obj/main.o $(LIBFLAGS) $(LDFLAGS) -o $@
 	@echo CC lemon
 
 liblemon.a: $(OBJS) $(INCS) Makefile

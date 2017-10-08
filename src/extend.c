@@ -300,6 +300,7 @@ extend_div(extend_t *q, int n,
 			borrow = extend_sub(&rem[k], m + 1,
 			                    &rem[k], m + 1,
 			                    dq, 0);
+			(void)borrow;
 			assert(borrow == 0);
 		}
 		memcpy(r, rem, m * sizeof(extend_t));
