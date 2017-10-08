@@ -16,9 +16,9 @@ ifeq ($(UNAME_S),Linux)
 	CFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE
 endif
 
+DEBUG ?= 1
 ifeq ($(DEBUG),0)
 	CFLAGS += -O3 -flto -DNDEBUG
-	LDFLAGS += -ljemalloc
 else ifeq ($(UNAME_S),Darwin)
 	CFLAGS += -g -DDEBUG
 	CFLAGS += -fsanitize=address

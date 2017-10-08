@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <inttypes.h>
 
 void *
 mpool_create(long size, long blocksize)
