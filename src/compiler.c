@@ -2206,7 +2206,7 @@ compiler_import_stmt(struct lemon *lemon, struct syntax *node)
 
 		handle = dlopen(module_path, RTLD_NOW);
 		if (handle == NULL) {
-			perror("dlopen");
+			fprintf(stderr, "dlopen: %s\n", dlerror());
 
 			return 0;
 		}

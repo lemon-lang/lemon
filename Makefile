@@ -6,6 +6,7 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)
 	AR=gcc-ar
 	CFLAGS += -DLINUX
+	LDFLAGS += -Wl,-rpath=./
 endif
 ifeq ($(UNAME_S),Darwin)
 	AR=ar
