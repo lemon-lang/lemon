@@ -124,9 +124,10 @@ lexer_scan_number(struct lemon *lemon, int c)
 			}
 			break;
 		case '.':
-			if (oct || hex || dot) {
+			if (hex || dot) {
 				done = 1;
 			} else {
+				oct = 0;
 				dot = 1;
 			}
 			break;
