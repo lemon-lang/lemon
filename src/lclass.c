@@ -24,7 +24,7 @@ lclass_get_attr(struct lemon *lemon, struct lclass *self, struct lobject *name)
 		/* search class->bases */
 		length = larray_length(lemon, self->bases);
 		for (i = 0; i < length; i++) {
-			base = larray_get_item(lemon, clazz->bases, i);
+			base = larray_get_item(lemon, self->bases, i);
 			if (lobject_is_class(lemon, base)) {
 				clazz = (struct lclass *)base;
 				value = lobject_get_item(lemon,
