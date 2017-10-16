@@ -22,6 +22,8 @@ struct machine {
 
 	unsigned char *code;
 
+	struct lframe *pause;
+
 	struct lframe **frame;
 	struct lobject **stack;
 	struct lobject **cpool;
@@ -94,8 +96,9 @@ void
 machine_restore_frame(struct lemon *lemon,
                       struct lframe *frame);
 
-int
-machine_throw(struct lemon *lemon);
+struct lobject *
+machine_throw(struct lemon *lemon,
+              struct lobject *object);
 
 void
 machine_disassemble(struct lemon *lemon);

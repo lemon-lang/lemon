@@ -52,6 +52,7 @@ linstance_get_attr(struct lemon *lemon,
 	int i;
 	long length;
 	const char *cstr;
+	struct lclass *clazz;
 	struct lobject *base;
 	struct lobject *value;
 
@@ -71,15 +72,16 @@ linstance_get_attr(struct lemon *lemon,
 
 	/* search class */
 	base = (struct lobject *)self->clazz;
-	value = lobject_get_attr(lemon, base, name);
+	value = lobject_get_item(lemon, self->clazz->attr, name);
 	if (!value) {
 		/* search class->bases */
 		length = larray_length(lemon, self->clazz->bases);
 		for (i = 0; i < length; i++) {
 			base = larray_get_item(lemon, self->clazz->bases, i);
 			if (lobject_is_class(lemon, base)) {
-				value = lobject_get_attr(lemon,
-				                         base,
+				clazz = (struct lclass *)base;
+				value = lobject_get_item(lemon,
+				                         clazz->attr,
 				                         name);
 			} else {
 				value = lobject_get_attr(lemon,

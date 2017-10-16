@@ -159,6 +159,13 @@ void
 lemon_machine_reset(struct lemon *lemon);
 
 int
+lemon_machine_halted(struct lemon *lemon);
+
+struct lobject *
+lemon_machine_throw(struct lemon *lemon,
+                    struct lobject *lobject);
+
+int
 lemon_machine_get_pc(struct lemon *lemon);
 
 void
@@ -239,6 +246,20 @@ lemon_machine_store_frame(struct lemon *lemon,
 void
 lemon_machine_restore_frame(struct lemon *lemon,
                             struct lframe *frame);
+
+struct lframe *
+lemon_machine_add_pause(struct lemon *lemon);
+
+struct lframe *
+lemon_machine_get_pause(struct lemon *lemon);
+
+struct lframe *
+lemon_machine_set_pause(struct lemon *lemon,
+                        struct lframe *frame);
+
+void
+lemon_machine_del_pause(struct lemon *lemon,
+                        struct lframe *frame);
 
 struct lobject *
 lemon_machine_parse_args(struct lemon *lemon,

@@ -35,6 +35,7 @@ lcontinuation_call(struct lemon *lemon,
 		lemon_machine_push_object(lemon, lemon->l_nil);
 	}
 	lemon_machine_set_pc(lemon, self->address);
+	lemon_machine_set_pause(lemon, self->pause);
 
 	return lemon->l_nil;
 }
@@ -156,6 +157,7 @@ lcontinuation_callcc(struct lemon *lemon,
 		continuation->stack[i] = lemon_machine_get_stack(lemon, i);
 	}
 	continuation->stacklen = stacklen;
+	continuation->pause = lemon_machine_get_pause(lemon);
 
 	if (argc) {
 		struct lobject *value[1];
@@ -181,7 +183,7 @@ lcontinuation_type_create(struct lemon *lemon)
 		lemon_add_global(lemon, "continuation", type);
 	}
 
-	cstr = "calcc";
+	cstr = "callcc";
 	name = lstring_create(lemon, cstr, strlen(cstr));
 	function = lfunction_create(lemon, name, NULL, lcontinuation_callcc);
 	lemon_add_global(lemon, cstr, function);

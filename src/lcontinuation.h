@@ -12,6 +12,7 @@ struct lcontinuation {
 	int framelen;
 	int stacklen;
 
+	struct lframe *pause;
 	struct lframe **frame;
 	struct lobject **stack;
 	struct lobject *value;

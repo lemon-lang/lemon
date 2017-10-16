@@ -253,10 +253,7 @@ machine_stack_underflow(struct lemon *lemon)
 	struct lobject *error;
 
 	error = lobject_error_runtime(lemon, "stack underflow");
-	machine_push_object(lemon, error);
-	machine_throw(lemon);
-
-	return error;
+	return machine_throw(lemon, error);
 }
 
 struct lobject *
@@ -265,10 +262,7 @@ machine_stack_overflow(struct lemon *lemon)
 	struct lobject *error;
 
 	error = lobject_error_runtime(lemon, "stack overflow");
-	machine_push_object(lemon, error);
-	machine_throw(lemon);
-
-	return error;
+	return machine_throw(lemon, error);
 }
 
 void
@@ -297,10 +291,7 @@ machine_out_of_memory(struct lemon *lemon)
 	struct lobject *error;
 
 	error = lemon->l_out_of_memory;
-	machine_push_object(lemon, error);
-	machine_throw(lemon);
-
-	return error;
+	return machine_throw(lemon, error);
 }
 
 int
@@ -841,17 +832,95 @@ lemon_machine_parse_args(struct lemon *lemon,
 	return NULL;
 }
 
-int
-machine_throw(struct lemon *lemon)
+struct lframe *
+machine_add_pause(struct lemon *lemon)
+{
+	struct lframe *frame;
+	struct lframe *oldframe;
+	struct machine *machine;
+
+	machine = lemon->l_machine;
+	frame = lemon_machine_push_new_frame(lemon,
+	                                     NULL,
+	                                     NULL,
+	                                     lframe_default_callback,
+	                                     0);
+	if (!frame) {
+	       machine->halt = 1;
+
+	       return NULL;
+	}
+
+	oldframe = machine->pause;
+	machine->pause = frame;
+
+	return oldframe;
+}
+
+struct lframe *
+lemon_machine_add_pause(struct lemon *lemon)
+{
+	return machine_add_pause(lemon);
+}
+
+struct lframe *
+machine_get_pause(struct lemon *lemon)
+{
+	struct machine *machine;
+
+	machine = lemon->l_machine;
+	return machine->pause;
+}
+
+struct lframe *
+lemon_machine_get_pause(struct lemon *lemon)
+{
+	return machine_get_pause(lemon);
+}
+
+struct lframe *
+machine_set_pause(struct lemon *lemon, struct lframe *frame)
+{
+	struct lframe *oldframe;
+	struct machine *machine;
+
+	machine = lemon->l_machine;
+	oldframe = machine->pause;
+	machine->pause = frame;
+
+	return oldframe;
+}
+
+struct lframe *
+lemon_machine_set_pause(struct lemon *lemon, struct lframe *frame)
+{
+	return machine_set_pause(lemon, frame);
+}
+
+void
+machine_del_pause(struct lemon *lemon, struct lframe *frame)
+{
+	struct machine *machine;
+
+	machine = lemon->l_machine;
+	machine->pause = frame;
+}
+
+void
+lemon_machine_del_pause(struct lemon *lemon, struct lframe *frame)
+{
+	machine_del_pause(lemon, frame);
+}
+
+struct lobject *
+machine_throw(struct lemon *lemon, struct lobject *exception)
 {
 	int argc;
 	struct machine *machine;
 
 	struct lframe *frame;
-	struct lobject *exception;
 	struct lobject *argv[128];
 
-	exception = machine_pop_object(lemon);
 	exception = lobject_throw(lemon, exception);
 
 	argc = 0;
@@ -871,8 +940,10 @@ machine_throw(struct lemon *lemon)
 			                  argc,
 			                  argv);
 
-			machine_return_frame(lemon, lemon->l_nil);
-			return 1;
+			return machine_return_frame(lemon, lemon->l_nil);
+		}
+		if (frame == machine->pause) {
+			return exception;
 		}
 		machine_pop_frame(lemon);
 		machine_restore_frame(lemon, frame);
@@ -893,9 +964,13 @@ machine_throw(struct lemon *lemon)
 	                  0,
 	                  NULL);
 	machine->halt = 1;
-	machine_return_frame(lemon, lemon->l_nil);
+	return machine_return_frame(lemon, lemon->l_nil);
+}
 
-	return 0;
+struct lobject *
+lemon_machine_throw(struct lemon *lemon, struct lobject *exception)
+{
+	return machine_throw(lemon, exception);
 }
 
 void
@@ -905,6 +980,15 @@ machine_halt(struct lemon *lemon)
 
 	machine = lemon->l_machine;
 	machine->halt = 1;
+}
+
+int
+lemon_machine_halted(struct lemon *lemon)
+{
+        struct machine *machine;
+
+        machine = lemon->l_machine;
+        return machine->halt;
 }
 
 int
@@ -1095,6 +1179,14 @@ lemon_machine_execute_loop(struct lemon *lemon)
 
 	struct lobject *argv[256]; /* base value call arguments */
 
+#define CHECK_PAUSE(retval) do {                             \
+	if (machine->fp >= 0 &&                              \
+	    machine->frame[machine->fp] == machine->pause) { \
+		return (retval);                             \
+	}                                                    \
+} while (0)
+
+
 #define CHECK_NULL(p) do {                      \
 	if (!(p)) {                             \
 		machine_out_of_memory(lemon);   \
@@ -1102,13 +1194,13 @@ lemon_machine_execute_loop(struct lemon *lemon)
 	}                                       \
 } while (0)                                     \
 
-#define CHECK_ERROR(object) do {                 \
-	if (lobject_is_error(lemon, (object))) { \
-		PUSH_OBJECT((object));           \
-		machine_throw(lemon);            \
-		break;                           \
-	}                                        \
-} while (0)                                      \
+#define CHECK_ERROR(object) do {                  \
+	if (lobject_is_error(lemon, (object))) {  \
+		e = machine_throw(lemon, object); \
+		CHECK_PAUSE(e);                   \
+		break;                            \
+	}                                         \
+} while (0)                                       \
 
 #define UNOP(m) do {                             \
 	if (machine->sp >= 0) {                  \
@@ -1131,7 +1223,8 @@ lemon_machine_execute_loop(struct lemon *lemon)
 		CHECK_ERROR(c);                      \
 		PUSH_OBJECT(c);                      \
 	} else {                                     \
-		machine_stack_underflow(lemon);      \
+		e = machine_stack_underflow(lemon);  \
+		CHECK_PAUSE(e);                      \
 	}                                            \
 } while(0)
 
@@ -1144,17 +1237,19 @@ lemon_machine_execute_loop(struct lemon *lemon)
 		if (machine_extend_stack(lemon)) {                \
 			machine->stack[++machine->sp] = (object); \
 		} else {                                          \
-			machine_stack_overflow(lemon);            \
+			e = machine_stack_overflow(lemon);        \
+			CHECK_PAUSE(e);                           \
 		}                                                 \
 	}                                                         \
 } while(0)
 
-#define CHECK_STACK(size) do {                  \
-	if (machine->sp < (size) - 1) {         \
-		machine_stack_underflow(lemon); \
-		break;                          \
-	}                                       \
-} while (0)                                     \
+#define CHECK_STACK(size) do {                      \
+	if (machine->sp < (size) - 1) {             \
+		e = machine_stack_underflow(lemon); \
+		CHECK_PAUSE(e);                     \
+		break;                              \
+	}                                           \
+} while (0)                                         \
 
 #define FETCH_CODE1() machine->code[machine->pc++]
 #define FETCH_CODE4() machine_fetch_code4(lemon)
@@ -1168,6 +1263,7 @@ lemon_machine_execute_loop(struct lemon *lemon)
 
 #define POP_CALLBACK_FRAME(retval) do {                                     \
 	while (machine->fp >= 0 && machine->frame[machine->fp]->callback) { \
+		CHECK_PAUSE((retval));                                      \
 		frame = machine_pop_frame(lemon);                           \
 		machine_restore_frame(lemon, frame);                        \
 		(retval) = frame->callback(lemon, frame, (retval));         \
@@ -1178,6 +1274,9 @@ lemon_machine_execute_loop(struct lemon *lemon)
 } while (0)
 
 	machine = lemon->l_machine;
+	if (machine->fp >= 0) {
+		CHECK_PAUSE(lemon->l_nil);
+	}
 	while (!machine->halt && machine->pc < machine->maxpc) {
 		opcode = machine->code[machine->pc++];
 
@@ -1803,7 +1902,10 @@ lemon_machine_execute_loop(struct lemon *lemon)
 		}
 
 		case OPCODE_THROW:
-			machine_throw(lemon);
+			CHECK_STACK(1);
+			a = POP_OBJECT();
+			b = machine_throw(lemon, a);
+			CHECK_PAUSE(b);
 			break;
 
 		case OPCODE_TRY: {
@@ -1837,8 +1939,8 @@ lemon_machine_execute_loop(struct lemon *lemon)
 				c = lobject_error_runtime(lemon,
 				                          fmt,
 				                          frame->callee);
-				PUSH_OBJECT(c);
-				machine_throw(lemon);
+				e = machine_throw(lemon, c);
+				CHECK_PAUSE(e);
 			}
 			break;
 		}
@@ -1855,8 +1957,8 @@ lemon_machine_execute_loop(struct lemon *lemon)
 				c = lobject_error_runtime(lemon,
 				                          fmt,
 				                          frame->callee);
-				PUSH_OBJECT(c);
-				machine_throw(lemon);
+				e = machine_throw(lemon, c);
+				CHECK_PAUSE(e);
 			}
 			break;
 		}

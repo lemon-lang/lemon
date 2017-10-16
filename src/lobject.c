@@ -927,6 +927,15 @@ lobject_default(struct lemon *lemon,
 	case LOBJECT_METHOD_GET_SETTER:
 		return NULL;
 
+	case LOBJECT_METHOD_SUPER:
+		return NULL;
+
+	case LOBJECT_METHOD_SUBCLASS:
+		return NULL;
+
+	case LOBJECT_METHOD_INSTANCE:
+		return NULL;
+
 	case LOBJECT_METHOD_STRING: {
 		char buffer[32];
 		snprintf(buffer, sizeof(buffer), "<object %p>", (void *)self);

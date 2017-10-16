@@ -78,6 +78,7 @@ scope_get_symbol(struct lemon *lemon, struct scope *scope, char *name)
 				symbol->cpool = s->cpool;
 				symbol->level = s->level + level;
 				symbol->local = s->local;
+				symbol->accessor_list = s->accessor_list;
 
 				return symbol;
 			}

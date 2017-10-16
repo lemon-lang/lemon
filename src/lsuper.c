@@ -80,8 +80,19 @@ lsuper_get_attr(struct lemon *lemon,
 		}
 	}
 
-	if (value && lobject_is_class(lemon, base)) {
-		value = lfunction_bind(lemon, value, self->self);
+	if (value) {
+		if (lobject_is_class(lemon, base)) {
+			value = lfunction_bind(lemon, value, self->self);
+		} else {
+			base = lobject_method_call(lemon,
+			                           instance->native,
+			                           LOBJECT_METHOD_SUPER,
+			                           0,
+			                           NULL);
+			if (base) {
+				value = lobject_get_attr(lemon, base, name);
+			}
+		}
 	}
 
 	return value;

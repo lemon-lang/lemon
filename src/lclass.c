@@ -13,7 +13,36 @@
 static struct lobject *
 lclass_get_attr(struct lemon *lemon, struct lclass *self, struct lobject *name)
 {
-	return lobject_get_item(lemon, self->attr, name);
+	int i;
+	long length;
+	struct lclass *clazz;
+	struct lobject *base;
+	struct lobject *value;
+
+	value = lobject_get_item(lemon, self->attr, name);
+	if (!value) {
+		/* search class->bases */
+		length = larray_length(lemon, self->bases);
+		for (i = 0; i < length; i++) {
+			base = larray_get_item(lemon, clazz->bases, i);
+			if (lobject_is_class(lemon, base)) {
+				clazz = (struct lclass *)base;
+				value = lobject_get_item(lemon,
+				                         clazz->attr,
+				                         name);
+			} else {
+				value = lobject_get_attr(lemon,
+				                         base,
+				                         name);
+			}
+
+			if (value) {
+				return value;
+			}
+		}
+	}
+
+	return value;
 }
 
 static struct lobject *
@@ -252,6 +281,11 @@ lclass_call(struct lemon *lemon,
 				return instance->native;
 			}
 			instance->native = native;
+			lobject_method_call(lemon,
+			                    instance->native,
+			                    LOBJECT_METHOD_INSTANCE,
+			                    1,
+			                    (struct lobject **)&instance);
 
 			break;
 		}
@@ -382,6 +416,16 @@ lclass_create(struct lemon *lemon,
 		error = lclass_set_supers(lemon, self, nsupers, supers);
 		if (!error || lobject_is_error(lemon, error)) {
 			return error;
+		}
+
+		for (i = 0; i < larray_length(lemon, self->bases); i++) {
+			lobject_method_call(lemon,
+			                    larray_get_item(lemon,
+			                                    self->bases,
+			                                    i),
+			                    LOBJECT_METHOD_SUBCLASS,
+			                    1,
+			                    (struct lobject **)&self);
 		}
 
 		for (i = 0; i < nattrs; i += 2) {
