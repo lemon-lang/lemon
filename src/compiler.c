@@ -924,6 +924,12 @@ compiler_var_stmt(struct lemon *lemon, struct syntax *node)
 	stmt_enclosing = lemon->l_stmt_enclosing;
 	lemon->l_stmt_enclosing = node;
 
+	if (node->u.var_stmt.expr) {
+		if (!compiler_expr(lemon, node->u.var_stmt.expr)) {
+			return 0;
+		}
+	}
+
 	symbol = scope_add_symbol(lemon,
 	                          lemon->l_scope,
 	                          node->u.var_stmt.name->buffer,
@@ -941,10 +947,6 @@ compiler_var_stmt(struct lemon *lemon, struct syntax *node)
 	symbol->local = space_enclosing->nlocals++;
 
 	if (node->u.var_stmt.expr) {
-		if (!compiler_expr(lemon, node->u.var_stmt.expr)) {
-			return 0;
-		}
-
 		generator_emit_store(lemon, 0, symbol->local);
 	}
 
