@@ -418,16 +418,6 @@ lclass_create(struct lemon *lemon,
 			return error;
 		}
 
-		for (i = 0; i < larray_length(lemon, self->bases); i++) {
-			lobject_method_call(lemon,
-			                    larray_get_item(lemon,
-			                                    self->bases,
-			                                    i),
-			                    LOBJECT_METHOD_SUBCLASS,
-			                    1,
-			                    (struct lobject **)&self);
-		}
-
 		for (i = 0; i < nattrs; i += 2) {
 			if (!lobject_is_string(lemon, attrs[i])) {
 				return NULL;
@@ -440,6 +430,16 @@ lclass_create(struct lemon *lemon,
 			{
 				return NULL;
 			}
+		}
+
+		for (i = 0; i < larray_length(lemon, self->bases); i++) {
+			lobject_method_call(lemon,
+			                    larray_get_item(lemon,
+			                                    self->bases,
+			                                    i),
+			                    LOBJECT_METHOD_SUBCLASS,
+			                    1,
+			                    (struct lobject **)&self);
 		}
 	}
 
