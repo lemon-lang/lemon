@@ -136,7 +136,7 @@ os_fcntl(struct lemon *lemon, struct lobject *self, int argc, struct lobject *ar
 
 	if (argc < 2 || argc > 3) {
 		return lobject_error_argument(lemon,
-		                              "fcntl() require fd, cmd and optional value");
+		                              "fcntl() requires fd, cmd, and optional value");
 	}
 
 	value = 0;
@@ -181,18 +181,18 @@ os_select(struct lemon *lemon, struct lobject *self, int argc, struct lobject *a
 	struct lobject *items[3];
 
 	if (argc != 3 && argc != 4) {
-		return lobject_error_argument(lemon, "select() required 3 arrays");
+		return lobject_error_argument(lemon, "select() requires 3 arrays");
 	}
 
 	if (!lobject_is_array(lemon, argv[0]) ||
 	    !lobject_is_array(lemon, argv[1]) ||
 	    !lobject_is_array(lemon, argv[2]))
 	{
-		return lobject_error_argument(lemon, "select() required 3 arrays");
+		return lobject_error_argument(lemon, "select() requires 3 arrays");
 	}
 
 	if (argc == 4 && !lobject_is_integer(lemon, argv[3])) {
-		return lobject_error_argument(lemon, "select() 4th not integer");
+		return lobject_error_argument(lemon, "select() 4th argument must be an integer");
 	}
 
 	FD_ZERO(&rfds);
@@ -328,7 +328,7 @@ os_ctime(struct lemon *lemon, struct lobject *self, int argc, struct lobject *ar
 	char buf[26];
 
 	if (argc != 1 || lobject_is_integer(lemon, argv[0])) {
-		return lobject_error_argument(lemon, "required 1 integer argument");
+		return lobject_error_argument(lemon, "requires 1 integer argument");
 	}
 	t = linteger_to_long(lemon, argv[0]);
 
@@ -360,7 +360,7 @@ os_gmtime(struct lemon *lemon, struct lobject *self, int argc, struct lobject *a
 	tm = lobject_create(lemon, sizeof(struct ltmobject), ltmobject_method);
 
 	if (argc != 1 || !lobject_is_integer(lemon, argv[0])) {
-		return lobject_error_argument(lemon, "required 1 integer argument");
+		return lobject_error_argument(lemon, "requires 1 integer argument");
 	}
 
 	t = linteger_to_long(lemon, argv[0]);
@@ -377,7 +377,7 @@ os_strftime(struct lemon *lemon, struct lobject *self, int argc, struct lobject 
 	struct ltmobject *tm;
 
 	if (argc != 2 || !lobject_is_string(lemon, argv[0]) || argv[1]->l_method != ltmobject_method) {
-		return lobject_error_argument(lemon, "required 2 integer arguments");
+		return lobject_error_argument(lemon, "requires 2 integer arguments");
 	}
 
 	tm = (struct ltmobject *)argv[1];
@@ -396,7 +396,7 @@ os_exit(struct lemon *lemon, struct lobject *self, int argc, struct lobject *arg
 	status = 0;
 	if (argc == 1) {
 		if (!lobject_is_integer(lemon, argv[0])) {
-			return lobject_error_argument(lemon, "required 1 integer argument");
+			return lobject_error_argument(lemon, "requires 1 integer argument");
 		}
 
 		status = linteger_to_long(lemon, argv[0]);

@@ -171,12 +171,12 @@ builtin_input(struct lemon *lemon,
 	char buffer[4096];
 
 	if (argc > 1) {
-		fmt = "input() take 1 string argument";
+		fmt = "input() takes 1 string argument";
 		return lobject_error_argument(lemon, fmt);
 	}
 
 	if (argc && !lobject_is_string(lemon, argv[0])) {
-		fmt = "input() take 1 string argument";
+		fmt = "input() takes 1 string argument";
 		return lobject_error_argument(lemon, fmt);
 	}
 
@@ -325,7 +325,7 @@ builtin_map(struct lemon *lemon,
 
 	if (argc != 2) {
 		return lobject_error_argument(lemon,
-		                              "'map()' require 2 arguments");
+		                              "'map()' requires 2 arguments");
 	}
 
 	callable = argv[0];
