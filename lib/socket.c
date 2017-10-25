@@ -68,7 +68,7 @@ socket_bind(struct lemon *lemon, struct lobject *self, int argc, struct lobject 
 	struct sockaddr_in addr;
 
 	if (argc != 2) {
-		return lobject_error_argument(lemon, "bind() required port");
+		return lobject_error_argument(lemon, "bind() requires port");
 	}
 
 	port = linteger_to_long(lemon, argv[1]);
@@ -119,7 +119,7 @@ socket_connect(struct lemon *lemon, struct lobject *self, int argc, struct lobje
         struct sockaddr_in addr;
 
 	if (argc != 3) {
-		return lobject_error_argument(lemon, "connect() require addr and port");
+		return lobject_error_argument(lemon, "connect() requires addr and port");
 	}
 	host = lstring_to_cstr(lemon, argv[1]);
 	port = linteger_to_long(lemon, argv[2]);
