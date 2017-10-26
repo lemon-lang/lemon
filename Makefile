@@ -1,6 +1,6 @@
 CC=cc
 CFLAGS = -std=c89 -pedantic -Wall -Wextra -Wno-unused-parameter -fPIC -I. -I./src
-LDFLAGS = -lm -ldl
+LDFLAGS = -lm -ldl -lreadline
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)

@@ -10,7 +10,11 @@
 #include "generator.h"
 #include "ltable.h"
 
+#include <stdlib.h>
 #include <string.h>
+
+#include <readline/readline.h>
+#include <readline/history.h>
 
 int
 check_paren_is_closed(char *code, int len)
@@ -192,7 +196,7 @@ shell(struct lemon *lemon)
 	int codelen;
 	char stmt[4096];
 	char code[40960];
-	char buffer[4096];
+	char *buffer;
 
 	struct syntax *node;
 	struct lframe *frame;
@@ -212,12 +216,13 @@ shell(struct lemon *lemon)
 	memset(code, 0, sizeof(code));
 	while (1) {
 		if (check_stmt_is_closed(code, codelen)) {
-			fputs(">>> ", stdout);
+			buffer = readline(">>> ");
 		} else {
-			fputs("... ", stdout);
+			buffer = readline("... ");
 		}
+        add_history(buffer);
 
-		if (!fgets(buffer, sizeof(buffer), stdin)) {
+		if (!buffer) {
 			break;
 		}
 
@@ -242,14 +247,16 @@ shell(struct lemon *lemon)
 		/* copy buffer to stmt for error recovery */
 		memcpy(stmt + stmtlen,
 		       buffer,
-		       strnlen(buffer, sizeof(buffer)));
-		stmtlen += strnlen(buffer, sizeof(buffer));
+		       strlen(buffer));
+		stmtlen += strlen(buffer);
 
 		/* copy buffer to code */
 		memcpy(code + codelen,
 		       buffer,
-		       strnlen(buffer, sizeof(buffer)));
-		codelen += strnlen(buffer, sizeof(buffer));
+		       strlen(buffer));
+		codelen += strlen(buffer);
+
+        free(buffer);
 
 		if (!check_stmt_is_closed(code, codelen)) {
 			continue;
