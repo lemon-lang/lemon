@@ -220,7 +220,7 @@ shell(struct lemon *lemon)
 		} else {
 			buffer = readline("... ");
 		}
-        add_history(buffer);
+		add_history(buffer);
 
 		if (!buffer) {
 			break;
@@ -256,7 +256,7 @@ shell(struct lemon *lemon)
 		       strlen(buffer));
 		codelen += strlen(buffer);
 
-        free(buffer);
+		free(buffer);
 
 		if (!check_stmt_is_closed(code, codelen)) {
 			continue;
