@@ -226,21 +226,21 @@ shell(struct lemon *lemon)
 			break;
 		}
 
-		if (strcmp(buffer, "\\help\n") == 0) {
+		if (strcmp(buffer, "\\help") == 0) {
 			printf("'\\dis'  print bytecode\n"
 			       "'\\list' print source code\n"
 			       "'\\exit' exit from shell\n");
 			continue;
 		}
-		if (strcmp(buffer, "\\dis\n") == 0) {
+		if (strcmp(buffer, "\\dis") == 0) {
 			machine_disassemble(lemon);
 			continue;
 		}
-		if (strcmp(buffer, "\\list\n") == 0) {
+		if (strcmp(buffer, "\\list") == 0) {
 			printf("%.*s", codelen, code);
 			continue;
 		}
-		if (strcmp(buffer, "\\exit\n") == 0) {
+		if (strcmp(buffer, "\\exit") == 0) {
 			break;
 		}
 
