@@ -465,7 +465,7 @@ ltable_create(struct lemon *lemon)
 		size = sizeof(struct slot) * 3;
 		self->items = lemon_allocator_alloc(lemon, size);
 		if (!self->items) {
-			NULL;
+			return NULL;
 		}
 		memset(self->items, 0, size);
 		self->length = 3;
