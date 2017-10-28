@@ -1474,7 +1474,7 @@ parser_break_stmt(struct lemon *lemon)
 }
 
 /*
- * continue_stmt : 'break' ';'
+ * continue_stmt : 'continue' ';'
  *               ;
  */
 static struct syntax *
