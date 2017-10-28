@@ -6,6 +6,9 @@
 #include <string.h>
 #include <inttypes.h>
 
+#define ALIGN 8
+#define ROUNDUP(s) (((s) + ALIGN - 1) / ALIGN * ALIGN)
+
 void *
 mpool_create(long size, long blocksize)
 {
@@ -30,14 +33,15 @@ mpool_create(long size, long blocksize)
 	}
 
 	memset(mpool, 0, sizeof(*mpool));
-	mpool->blockptr = malloc((size_t)size);
+
+	mpool->blockptr = malloc(ROUNDUP(size));
 	if (!mpool->blockptr) {
 		free(mpool);
 
 		return NULL;
 	}
-
-	memset(mpool->blockptr, 0, size);
+	mpool->firstptr = (void *)ROUNDUP((uintptr_t)mpool->blockptr);
+	memset(mpool->blockptr, 0, ROUNDUP(size));
 	mpool->size = size;
 	mpool->nblocks = size / blocksize;
 	mpool->blocksize = blocksize;
@@ -45,7 +49,7 @@ mpool_create(long size, long blocksize)
 	mpool->freeblocks = 0;
 
 	for (i = 0; i < mpool->nblocks; i++) {
-		mpool_free(mpool, (char *)mpool->blockptr + blocksize * i);
+		mpool_free(mpool, (char *)mpool->firstptr + blocksize * i);
 	}
 
 	return mpool;
@@ -86,7 +90,7 @@ mpool_free(struct mpool *mpool, void *ptr)
 		       (char *)ptr < (char *)mpool->blockptr + mpool->size);
 
 		assert((uintptr_t)((char *)ptr -
-		                   (char *)mpool->blockptr) %
+		                   (char *)mpool->firstptr) %
 		       mpool->blocksize == 0);
 
 		freeptr = mpool->freeptr;

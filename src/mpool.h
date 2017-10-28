@@ -7,6 +7,7 @@ struct mpool {
 	long blocksize;
 	long freeblocks;
 
+	void *firstptr;
 	void *freeptr;
 	void *blockptr;
 
