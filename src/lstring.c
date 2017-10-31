@@ -446,18 +446,19 @@ lstring_find(struct lemon *lemon,
 		substring = (struct lstring *)argv[0];
 
 		if (substring->length == 0) {
-			return lemon->l_true;
+			return linteger_create_from_long(lemon, 0);
 		}
 
 		if (substring->length == 1) {
 			c = substring->buffer[0];
 			for (i = 0; i < string->length; i++) {
 				if (string->buffer[i] == c) {
-					return lemon->l_true;
+					return linteger_create_from_long(lemon,
+					                                 i);
 				}
 			}
 
-			return lemon->l_false;
+			return linteger_create_from_long(lemon, -1);
 		}
 
 		len = string->length - substring->length + 1;
@@ -466,12 +467,12 @@ lstring_find(struct lemon *lemon,
 			            substring->buffer,
 			            substring->length) == 0)
 			{
-				return lemon->l_true;
+				return linteger_create_from_long(lemon, i);
 			}
 		}
 	}
 
-	return lemon->l_false;
+	return linteger_create_from_long(lemon, -1);
 }
 
 static struct lobject *
@@ -490,18 +491,19 @@ lstring_rfind(struct lemon *lemon,
 		substring = (struct lstring *)argv[0];
 
 		if (substring->length == 0) {
-			return lemon->l_true;
+			return linteger_create_from_long(lemon, 0);
 		}
 
 		if (substring->length == 1) {
 			c = substring->buffer[0];
 			for (i = string->length; i > 0; i--) {
 				if (string->buffer[i - 1] == c) {
-					return lemon->l_true;
+					return linteger_create_from_long(lemon,
+					                                 i - 1);
 				}
 			}
 
-			return lemon->l_false;
+			return linteger_create_from_long(lemon, -1);
 		}
 
 		len = string->length - substring->length + 1;
@@ -510,12 +512,12 @@ lstring_rfind(struct lemon *lemon,
 			            substring->buffer,
 			            substring->length) == 0)
 			{
-				return lemon->l_true;
+				return linteger_create_from_long(lemon, i - 1);
 			}
 		}
 	}
 
-	return lemon->l_false;
+	return linteger_create_from_long(lemon, -1);
 }
 
 static struct lobject *
