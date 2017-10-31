@@ -529,6 +529,7 @@ lstring_replace(struct lemon *lemon,
 	int j;
 	int c;
 	int r;
+	int o;
 	long len;
 	long diff;
 	int count;
@@ -591,8 +592,8 @@ lstring_replace(struct lemon *lemon,
 				if (newstring->buffer[i] == c) {
 					newstring->buffer[j++] = (char)r;
 				} else {
-					r = string->buffer[i];
-					newstring->buffer[j++] = (char)r;
+					o = string->buffer[i];
+					newstring->buffer[j++] = (char)o;
 				}
 			}
 
@@ -608,8 +609,8 @@ lstring_replace(struct lemon *lemon,
 						j += repstring->length;
 					}
 				} else {
-					r = string->buffer[i];
-					newstring->buffer[j++] = (char)r;
+					o = string->buffer[i];
+					newstring->buffer[j++] = (char)o;
 				}
 			}
 
@@ -625,8 +626,8 @@ lstring_replace(struct lemon *lemon,
 					newstring->buffer[j++] = (char)r;
 					i += substring->length - 1;
 				} else {
-					r = string->buffer[i];
-					newstring->buffer[j++] = (char)r;
+					o = string->buffer[i];
+					newstring->buffer[j++] = (char)o;
 				}
 			}
 
@@ -644,8 +645,8 @@ lstring_replace(struct lemon *lemon,
 					j += repstring->length;
 					i += substring->length - 1;
 				} else {
-					r = string->buffer[i];
-					newstring->buffer[j++] = (char)r;
+					o = string->buffer[i];
+					newstring->buffer[j++] = (char)o;
 				}
 			}
 		}
