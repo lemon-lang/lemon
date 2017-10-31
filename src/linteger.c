@@ -500,7 +500,6 @@ promot:
 	}
 
 	s = (linteger_to_long(lemon, b) + EXTEND_BITS-1) & ~(EXTEND_BITS-1);
-	ia = (struct linteger *)a;
 	ndigits = ia->ndigits + (int)s / EXTEND_BITS;
 	ic = linteger_create(lemon, ndigits);
 	if (!ic) {
