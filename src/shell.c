@@ -220,6 +220,7 @@ shell(struct lemon *lemon)
 		if (!fgets(buffer, sizeof(buffer), stdin)) {
 			break;
 		}
+		buffer[sizeof(buffer) - 1] = '\0';
 
 		if (strcmp(buffer, "\\help\n") == 0) {
 			printf("'\\dis'  print bytecode\n"
@@ -240,16 +241,12 @@ shell(struct lemon *lemon)
 		}
 
 		/* copy buffer to stmt for error recovery */
-		memcpy(stmt + stmtlen,
-		       buffer,
-		       strnlen(buffer, sizeof(buffer)));
-		stmtlen += strnlen(buffer, sizeof(buffer));
+		memcpy(stmt + stmtlen, buffer, strlen(buffer));
+		stmtlen += strlen(buffer);
 
 		/* copy buffer to code */
-		memcpy(code + codelen,
-		       buffer,
-		       strnlen(buffer, sizeof(buffer)));
-		codelen += strnlen(buffer, sizeof(buffer));
+		memcpy(code + codelen, buffer, strlen(buffer));
+		codelen += strlen(buffer);
 
 		if (!check_stmt_is_closed(code, codelen)) {
 			continue;

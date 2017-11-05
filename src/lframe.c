@@ -42,7 +42,6 @@ static struct lobject *
 lframe_string(struct lemon *lemon, struct lframe *self)
 {
 	char buffer[256];
-	unsigned long maxlen;
 	const char *callee;
 	struct lobject *string;
 
@@ -51,10 +50,14 @@ lframe_string(struct lemon *lemon, struct lframe *self)
 		string = lobject_string(lemon, self->callee);
 		callee = lstring_to_cstr(lemon, string);
 	}
-	maxlen = sizeof(buffer);
-	snprintf(buffer, maxlen, "<frame '%s': %p>", callee, (void *)self);
+	snprintf(buffer,
+	         sizeof(buffer),
+	         "<frame '%s': %p>",
+	         callee,
+	         (void *)self);
+	buffer[sizeof(buffer) - 1] = '\0';
 
-	return lstring_create(lemon, buffer, strnlen(buffer, maxlen));
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 static struct lobject *

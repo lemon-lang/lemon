@@ -18,8 +18,9 @@ ltype_string(struct lemon *lemon, struct ltype *self)
 		         "<type %p>",
 		         (void *)(uintptr_t)self->method);
 	}
+	buffer[sizeof(buffer) - 1] = '\0';
 
-	return lstring_create(lemon, buffer, strnlen(buffer, sizeof(buffer)));
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 static struct lobject *

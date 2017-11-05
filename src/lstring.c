@@ -1064,9 +1064,9 @@ lstring_method(struct lemon *lemon,
 
 	case LOBJECT_METHOD_HASH:
 		return linteger_create_from_long(lemon,
-		                       lemon_hash(lemon,
-		                                  cast(self)->buffer,
-		                                  cast(self)->length));
+		                                 lemon_hash(lemon,
+		                                            cast(self)->buffer,
+		                                            cast(self)->length));
 
 	case LOBJECT_METHOD_STRING:
 		return self;

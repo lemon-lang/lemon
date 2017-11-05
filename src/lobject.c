@@ -639,7 +639,8 @@ lobject_error_base(struct lemon *lemon,
 				         sizeof(buffer) - length,
 				         "%d",
 				         va_arg(ap, int));
-				length = strnlen(buffer, sizeof(buffer));
+				buffer[sizeof(buffer) - 1] = '\0';
+				length = strlen(buffer);
 				if (length >= sizeof(buffer)) {
 					goto out;
 				}
@@ -651,7 +652,8 @@ lobject_error_base(struct lemon *lemon,
 				         sizeof(buffer) - length,
 				         "%s",
 				         lstring_to_cstr(lemon, string));
-				length = strnlen(buffer, sizeof(buffer));
+				buffer[sizeof(buffer) - 1] = '\0';
+				length = strlen(buffer);
 				if (length >= sizeof(buffer)) {
 					goto out;
 				}
@@ -661,7 +663,8 @@ lobject_error_base(struct lemon *lemon,
 				         sizeof(buffer) - length,
 				         "%s",
 				         va_arg(ap, char *));
-				length = strnlen(buffer, sizeof(buffer));
+				buffer[sizeof(buffer) - 1] = '\0';
+				length = strlen(buffer);
 				if (length >= sizeof(buffer)) {
 					goto out;
 				}
@@ -679,9 +682,8 @@ lobject_error_base(struct lemon *lemon,
 	}
 
 out:
-	message = lstring_create(lemon,
-	                         buffer,
-	                         strnlen(buffer, sizeof(buffer)));
+	buffer[sizeof(buffer) - 1] = '\0';
+	message = lstring_create(lemon, buffer, strlen(buffer));
 	exception = lobject_call(lemon, base, 1, &message);
 
 	/* return from class's call */

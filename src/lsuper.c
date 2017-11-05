@@ -105,7 +105,8 @@ lsuper_string(struct lemon *lemon, struct lsuper *self)
 
 	snprintf(buffer, sizeof(buffer), "<super>");
 
-	return lstring_create(lemon, buffer, strnlen(buffer, sizeof(buffer)));
+	buffer[sizeof(buffer) - 1] = '\0';
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 static struct lobject *

@@ -14,8 +14,9 @@ lfunction_string(struct lemon *lemon, struct lfunction *self)
 	         sizeof(buffer),
 	         "<function '%s'>",
 	         lstring_to_cstr(lemon, self->name));
+	buffer[sizeof(buffer) - 1] = '\0';
 
-	return lstring_create(lemon, buffer, strnlen(buffer, sizeof(buffer)));
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 static struct lobject *

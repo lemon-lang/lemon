@@ -787,8 +787,9 @@ linteger_string(struct lemon *lemon, struct lobject *self)
 		a->ndigits = integer->ndigits;
 		extend_to_str(a->ndigits, a->digits, p, size, 10);
 	}
+	buffer[sizeof(buffer) - 1] = '\0';
 
-	return lstring_create(lemon, buffer, strnlen(buffer, sizeof(buffer)));
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 struct lobject *

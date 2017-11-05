@@ -133,8 +133,9 @@ lmodule_string(struct lemon *lemon, struct lmodule *self)
 	         sizeof(buffer),
 	         "<module '%s'>",
 	         lstring_to_cstr(lemon, self->name));
+	buffer[sizeof(buffer) - 1] = '\0';
 
-	return lstring_create(lemon, buffer, strnlen(buffer, sizeof(buffer)));
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 static struct lobject *

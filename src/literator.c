@@ -174,8 +174,9 @@ literator_string(struct lemon *lemon, struct lobject *a)
 	char buffer[32];
 
 	snprintf(buffer, sizeof(buffer), "<iterator %p>", (void *)a);
+	buffer[sizeof(buffer) - 1] = '\0';
 
-	return lstring_create(lemon, buffer, strnlen(buffer, sizeof(buffer)));
+	return lstring_create(lemon, buffer, strlen(buffer));
 }
 
 static struct lobject *
