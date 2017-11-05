@@ -12,6 +12,13 @@
 
 #include <string.h>
 
+#ifdef MODULE_LINENOISE
+
+#include <stdlib.h>
+#include "lib/linenoise.h"
+
+#endif
+
 int
 check_paren_is_closed(char *code, int len)
 {
@@ -190,9 +197,9 @@ shell(struct lemon *lemon)
 
 	int stmtlen;
 	int codelen;
-	char stmt[4096];
-	char code[40960];
-	char buffer[4096];
+	char stmt[4096]={0};
+	char code[40960]={0};
+	char buffer[4096]={0};
 
 	struct syntax *node;
 	struct lframe *frame;
@@ -204,6 +211,16 @@ shell(struct lemon *lemon)
 	puts("Copyright 2017 Zhicheng Wei");
 	puts("Type '\\help' for more information, '\\exit' or ^D exit\n");
 
+#ifdef MODULE_LINENOISE
+
+	int  linelen;
+	char *line;
+
+	linenoiseSetMultiLine(1);
+	linenoiseHistoryLoad("history.txt");
+
+#endif
+
 	pc = 0;
 	codelen = 0;
 	stmtlen = 0;
@@ -211,15 +228,40 @@ shell(struct lemon *lemon)
 	lemon_machine_reset(lemon);
 	memset(code, 0, sizeof(code));
 	while (1) {
+
+#ifdef MODULE_LINENOISE
+
+		line = NULL;
+		if (check_stmt_is_closed(code, codelen)) {
+			line = linenoise(":> ");	
+		} else {
+			line = linenoise(".. ");
+		}
+
+		if(line == NULL) {
+			break;
+		}
+
+		linelen = strlen(line);
+		if (linelen > 0) {
+			linenoiseHistoryAdd(line);
+			linenoiseHistorySave("history.txt");
+			memcpy(buffer,line,linelen);
+			buffer[linelen]='\n';
+			buffer[linelen+1]=0;
+		}
+#else
+
 		if (check_stmt_is_closed(code, codelen)) {
 			fputs(">>> ", stdout);
 		} else {
 			fputs("... ", stdout);
 		}
-
 		if (!fgets(buffer, sizeof(buffer), stdin)) {
 			break;
 		}
+
+#endif
 
 		if (strcmp(buffer, "\\help\n") == 0) {
 			printf("'\\dis'  print bytecode\n"
@@ -307,5 +349,14 @@ shell(struct lemon *lemon)
 
 			break;
 		}
+
+#ifdef MODULE_LINENOISE
+
+		if (line != NULL) {
+			free(line);
+		}
+
+#endif
+
 	}
 }
