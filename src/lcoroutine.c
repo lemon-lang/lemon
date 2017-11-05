@@ -88,40 +88,36 @@ lcoroutine_transfer(struct lemon *lemon,
 	lemon_machine_pop_frame(lemon); /* pop transfer's frame */
 	frame = lemon_machine_pop_frame(lemon); /* pop caller's frame */
 
-	if (lobject_is_coroutine(lemon, frame->callee)) {
-		coroutine = (struct lcoroutine *)frame->callee;
-	} else {
-		coroutine = lcoroutine_create(lemon, frame);
-		if (!coroutine) {
-			return NULL;
-		}
-		frame->callee = (struct lobject *)coroutine;
+	if (!lobject_is_coroutine(lemon, frame->callee)) {
+		const char *cstr = "can't call transfer from %@";
+
+		return lobject_error_type(lemon, cstr, frame->callee);
 	}
 
+	/* save old coroutine */
+	coroutine = (struct lcoroutine *)frame->callee;
 	coroutine->frame = frame;
 	coroutine->address = lemon_machine_get_pc(lemon);
-	coroutine->stacklen = lemon_machine_get_sp(lemon) - frame->sp;
-	coroutine->current = argv[0];
 
-	if (coroutine->stack) {
-		lemon_allocator_free(lemon, coroutine->stack);
+	if (lemon_machine_get_sp(lemon) - frame->sp > 0) {
+		coroutine->stacklen = lemon_machine_get_sp(lemon) - frame->sp;
+		if (coroutine->stack) {
+			lemon_allocator_free(lemon, coroutine->stack);
+		}
+		size = sizeof(struct lobject *) * coroutine->stacklen;
+		coroutine->stack = lemon_allocator_alloc(lemon, size);
+		if (!coroutine->stack) {
+			return lemon->l_out_of_memory;
+		}
+		memset(coroutine->stack, 0, size);
+		for (i = 0; i < coroutine->stacklen; i++) {
+			coroutine->stack[i] = lemon_machine_pop_object(lemon);
+		}
 	}
-	size = sizeof(struct lobject *) * coroutine->stacklen;
-	coroutine->stack = lemon_allocator_alloc(lemon, size);
-	if (!coroutine->stack) {
-		return lemon->l_out_of_memory;
-	}
-	memset(coroutine->stack, 0, size);
-	for (i = 0; i < coroutine->stacklen; i++) {
-		coroutine->stack[i] = lemon_machine_pop_object(lemon);
-	}
-
 	lemon_machine_restore_frame(lemon, frame);
 
-	/* new's coroutine */
+	/* restore new coroutine */
 	coroutine = (struct lcoroutine *)self;
-	lemon_machine_store_frame(lemon, frame);
-
 	for (i = coroutine->stacklen; i > 0; i--) {
 		lemon_machine_push_object(lemon, coroutine->stack[i-1]);
 	}
@@ -129,6 +125,8 @@ lcoroutine_transfer(struct lemon *lemon,
 	lemon_machine_push_frame(lemon, coroutine->frame);
 	if (argc) {
 		lemon_machine_push_object(lemon, argv[0]);
+	} else {
+		lemon_machine_push_object(lemon, lemon->l_nil);
 	}
 	lemon_machine_set_pc(lemon, coroutine->address);
 
@@ -245,20 +243,22 @@ lcoroutine_yield(struct lemon *lemon,
 		frame->callee = (struct lobject *)coroutine;
 	}
 	coroutine->address = lemon_machine_get_pc(lemon);
-	coroutine->stacklen = lemon_machine_get_sp(lemon) - frame->sp;
 	coroutine->finished = 0;
 
-	if (coroutine->stack) {
-		lemon_allocator_free(lemon, coroutine->stack);
-	}
-	size = sizeof(struct lobject *) * coroutine->stacklen;
-	coroutine->stack = lemon_allocator_alloc(lemon, size);
-	if (!coroutine->stack) {
-		return NULL;
-	}
-	memset(coroutine->stack, 0, size);
-	for (i = 0; i < coroutine->stacklen; i++) {
-		coroutine->stack[i] = lemon_machine_pop_object(lemon);
+	if (lemon_machine_get_sp(lemon) - frame->sp > 0) {
+		coroutine->stacklen = lemon_machine_get_sp(lemon) - frame->sp;
+		if (coroutine->stack) {
+			lemon_allocator_free(lemon, coroutine->stack);
+		}
+		size = sizeof(struct lobject *) * coroutine->stacklen;
+		coroutine->stack = lemon_allocator_alloc(lemon, size);
+		if (!coroutine->stack) {
+			return NULL;
+		}
+		memset(coroutine->stack, 0, size);
+		for (i = 0; i < coroutine->stacklen; i++) {
+			coroutine->stack[i] = lemon_machine_pop_object(lemon);
+		}
 	}
 
 	if (argc) {
