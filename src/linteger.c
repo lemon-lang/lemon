@@ -951,10 +951,26 @@ linteger_to_long(struct lemon *lemon, struct lobject *object)
 	uintptr_t sign;
 	long value;
 
-	sign = ((uintptr_t)object) & 0x2;
-	value = ((uintptr_t)object) >> 2;
-	if (sign) {
-		return -value;
+	if (lobject_is_pointer(lemon, object)) {
+		unsigned long uvalue;
+		struct linteger *integer;
+
+		integer = (struct linteger *)object;
+		uvalue = extend_to_long(integer->ndigits, integer->digits);
+		if (uvalue > LONG_MAX) {
+			return LONG_MAX;
+		}
+
+		value = uvalue;
+		if (integer->sign == -1) {
+			value = -value;
+		}
+	} else {
+		sign = ((uintptr_t)object) & 0x2;
+		value = ((uintptr_t)object) >> 2;
+		if (sign) {
+			value = -value;
+		}
 	}
 
 	return value;
@@ -1022,7 +1038,7 @@ linteger_create_from_long(struct lemon *lemon, long value)
 		 * so change negative value to postivie and pack 1 sign bit
 		 * never use value directly, two's complement is not necessary
 		 */
-		int sign;
+		int sign; /* 0, positive, 1 negative */
 
 		sign = 0;
 		if (value < 0) {

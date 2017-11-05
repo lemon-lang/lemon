@@ -6,7 +6,7 @@
 struct linteger {
 	struct lobject object;
 
-	int sign;
+	int sign; /* 1 postive, -1 negative */
 	int length; /* count of digits[] */
 	int ndigits; /* used digits in digits[] */
 	extend_t digits[1];
