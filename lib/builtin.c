@@ -189,7 +189,8 @@ builtin_input(struct lemon *lemon,
 	if (p) {
 		long length;
 
-		length = strnlen(p, sizeof(buffer));
+		buffer[sizeof(buffer) - 1] = '\0';
+		length = strlen(p);
 		/* remove trail '\n' */
 		while (p[length--] == '\n') {
 		}
