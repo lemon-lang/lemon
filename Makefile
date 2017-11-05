@@ -93,6 +93,12 @@ SRCS += lib/socket.c
 CFLAGS += -DMODULE_SOCKET
 endif
 
+MODULE_LINENOISE ?= 0
+ifeq ($(MODULE_LINENOISE), 1)
+SRCS += lib/linenoise.c
+CFLAGS += -DMODULE_LINENOISE
+endif
+
 OBJS = $(addprefix obj/,$(notdir $(SRCS:.c=.o)))
 
 STATIC ?= 0
