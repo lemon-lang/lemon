@@ -275,8 +275,13 @@ lemon_create()
 	 * random number for seeding other module
 	 * 0x4c454d9d == ('L'<<24) + ('E'<<16) + ('M'<<8) + 'O' + 'N')
 	 */
+#ifdef WINDOWS
+	srand(0x4c454d9d);
+	lemon->l_random = rand();
+#else
 	srandom(0x4c454d9d);
 	lemon->l_random = random();
+#endif
 	lemon->l_allocator = allocator_create(lemon);
 	CHECK_NULL(lemon->l_allocator);
 

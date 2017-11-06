@@ -13,7 +13,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+
+#ifdef WINDOWS
+#include <windows.h>
+#include <winsock2.h>
+#else
 #include <sys/select.h>
+#endif
 
 static struct lobject *
 os_open(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
@@ -126,6 +132,7 @@ os_close(struct lemon *lemon, struct lobject *self, int argc, struct lobject *ar
 	return lemon->l_nil;
 }
 
+#ifndef WINDOWS
 static struct lobject *
 os_fcntl(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
 {
@@ -154,6 +161,7 @@ os_fcntl(struct lemon *lemon, struct lobject *self, int argc, struct lobject *ar
 
 	return linteger_create_from_long(lemon, flags);
 }
+#endif
 
 static struct lobject *
 os_select(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
@@ -300,13 +308,20 @@ os_select(struct lemon *lemon, struct lobject *self, int argc, struct lobject *a
 static struct lobject *
 os_realpath(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
 {
-	char *path;
+	const char *path;
 	char buffer[PATH_MAX];
 
+#ifdef WINDOWS
+	path = lstring_to_cstr(lemon, argv[0]);
+	if (GetFullPathName(path, PATH_MAX, buffer, NULL)) {
+		return lstring_create(lemon, buffer, strlen(buffer));
+	}
+#else
 	path = realpath(lstring_to_cstr(lemon, argv[0]), buffer);
 	if (path) {
 		return lstring_create(lemon, path, strlen(path));
 	}
+#endif
 
 	return lemon->l_nil;
 }
@@ -325,6 +340,7 @@ static struct lobject *
 os_ctime(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
 {
 	time_t t;
+	char *ptr;
 	char buf[26];
 
 	if (argc != 1 || lobject_is_integer(lemon, argv[0])) {
@@ -332,9 +348,14 @@ os_ctime(struct lemon *lemon, struct lobject *self, int argc, struct lobject *ar
 	}
 	t = linteger_to_long(lemon, argv[0]);
 
-	ctime_r(&t, buf);
+#ifdef WINDOWS
+	(void)buf;
+	ptr = ctime(&t);
+#else
+	ptr = ctime_r(&t, buf);
+#endif
 
-	return lstring_create(lemon, buf, strlen(buf));
+	return lstring_create(lemon, ptr, strlen(ptr));
 }
 
 struct ltmobject {
@@ -355,18 +376,31 @@ static struct lobject *
 os_gmtime(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
 {
 	time_t t;
-	struct ltmobject *tm;
+	struct tm *tm;
+	struct ltmobject *tmobject;
 
-	tm = lobject_create(lemon, sizeof(struct ltmobject), ltmobject_method);
+	tmobject = lobject_create(lemon, sizeof(struct ltmobject), ltmobject_method);
 
 	if (argc != 1 || !lobject_is_integer(lemon, argv[0])) {
 		return lobject_error_argument(lemon, "required 1 integer argument");
 	}
 
 	t = linteger_to_long(lemon, argv[0]);
-	gmtime_r(&t, &tm->tm);
 
-	return (struct lobject *)tm;
+#ifdef WINDOWS
+	tm = gmtime(&t);
+	if (!tm) {
+		return NULL;
+	}
+	memcpy(&tmobject->tm, tm, sizeof(*tm));
+#else
+	tm = gmtime_r(&t, &tmobject->tm);
+	if (!tm) {
+		return NULL;
+	}
+#endif
+
+	return (struct lobject *)tmobject;
 }
 
 static struct lobject *
@@ -439,11 +473,13 @@ os_module(struct lemon *lemon)
 	                 name,
 	                 lfunction_create(lemon, name, NULL, os_close));
 
+#ifndef WINDOWS
 	name = lstring_create(lemon, "fcntl", 5);
 	lobject_set_attr(lemon,
 	                 module,
 	                 name,
 	                 lfunction_create(lemon, name, NULL, os_fcntl));
+#endif
 
 	name = lstring_create(lemon, "time", 4);
 	lobject_set_attr(lemon,
@@ -481,6 +517,7 @@ os_module(struct lemon *lemon)
 	                 name,
 	                 lfunction_create(lemon, name, NULL, os_realpath));
 
+#ifndef WINDOWS
 	name = lstring_create(lemon, "F_GETFL", 7);
 	lobject_set_attr(lemon,
 	                 module,
@@ -492,6 +529,7 @@ os_module(struct lemon *lemon)
 	                 module,
 	                 name,
 	                 linteger_create_from_long(lemon, O_NONBLOCK));
+#endif
 
 	name = lstring_create(lemon, "exit", 4);
 	lobject_set_attr(lemon,

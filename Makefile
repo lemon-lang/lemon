@@ -1,33 +1,32 @@
 CC=cc
-CFLAGS = -std=c89 -pedantic -Wall -Wextra -Wno-unused-parameter -fPIC -I. -I./src
-LDFLAGS = -lm -ldl
+CFLAGS = -std=c89 -pedantic -Wall -Wextra -Wno-unused-parameter -I. -I./src
+LDFLAGS = -lm
 
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-	AR=gcc-ar
-	CFLAGS += -DLINUX
-	LDFLAGS += -Wl,-rpath=./
-endif
-ifeq ($(UNAME_S),Darwin)
-	AR=ar
-	CFLAGS += -DDARWIN
-endif
+ifeq ($(OS),Windows_NT)
+	CC = gcc
+	CFLAGS += -DWINDOWS
+	LDFLAGS += -lws2_32
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		AR=gcc-ar
+		CFLAGS += -DLINUX -D_XOPEN_SOURCE=700 -D_GNU_SOURCE
+		LDFLAGS += -Wl,-rpath=./
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		AR=ar
+		CFLAGS += -DDARWIN
+	endif
 
-ifeq ($(UNAME_S),Linux)
-	CFLAGS += -D_XOPEN_SOURCE=700 -D_GNU_SOURCE
+	CFLAGS += -fPIC
+	LDFLAGS += -ldl
 endif
 
 DEBUG ?= 0
 ifeq ($(DEBUG),0)
-	CFLAGS += -O3 -flto -DNDEBUG
-else ifeq ($(UNAME_S),Darwin)
-	CFLAGS += -g -DDEBUG
-	CFLAGS += -fsanitize=address
-	CFLAGS += -fsanitize=integer
-	CFLAGS += -fsanitize=undefined
-	LDFLAGS += -fsanitize=address
+	CFLAGS += -O2 -flto -DNDEBUG
 else
-	CFLAGS += -g -O1 -DDEBUG -fsanitize=address
+	CFLAGS += -g -DDEBUG
 endif
 
 ifeq ($USE_MALLOC),1)
@@ -83,25 +82,29 @@ SRCS += lib/builtin.c
 
 MODULE_OS ?= 1
 ifeq ($(MODULE_OS), 1)
-SRCS += lib/os.c
-CFLAGS += -DMODULE_OS
+	SRCS += lib/os.c
+	CFLAGS += -DMODULE_OS
 endif
 
 MODULE_SOCKET ?= 1
 ifeq ($(MODULE_SOCKET), 1)
-SRCS += lib/socket.c
-CFLAGS += -DMODULE_SOCKET
+	SRCS += lib/socket.c
+	CFLAGS += -DMODULE_SOCKET
 endif
 
 OBJS = $(addprefix obj/,$(notdir $(SRCS:.c=.o)))
 
 STATIC ?= 0
 ifeq ($(STATIC),0)
-LIB = liblemon.so
-LIBFLAGS = -L. -llemon
+	ifeq ($(OS),Windows_NT)
+		LIB = liblemon.dll
+	else
+		LIB = liblemon.so
+	endif
+	LIBFLAGS = -L. -llemon
 else
-LIB = liblemon.a
-CFLAGS += -DSTATICLINKED
+	LIB = liblemon.a
+	CFLAGS += -DSTATICLIB
 endif
 
 VPATH  = ./src:./lib
@@ -117,7 +120,7 @@ all: mkdir lemon
 mkdir: obj
 
 obj:
-	@mkdir -p obj
+	@mkdir obj
 
 lemon: obj/main.o $(LIB) Makefile
 	$(CC) $(CFLAGS) obj/main.o $(LIB) $(LIBFLAGS) $(LDFLAGS) -o $@
@@ -131,6 +134,10 @@ liblemon.so: $(OBJS) $(INCS) Makefile
 	$(CC) $(CFLAGS) $(LDFLAGS) -shared $(OBJS) -o $@
 	@echo CC liblemon.so
 
+liblemon.dll: $(OBJS) $(INCS) Makefile
+	$(CC) $(CFLAGS) -shared $(OBJS) $(LDFLAGS) -o $@
+	@echo CC liblemon.dll
+
 obj/%.o: %.c $(INCS) Makefile
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo CC $<
@@ -142,6 +149,6 @@ test: $(TESTS) lemon Makefile
 	done
 
 clean:
-	@rm -f lemon $(OBJS) liblemon.a liblemon.so obj/main.o
+	@rm -f lemon $(OBJS) liblemon.a liblemon.so liblemon.dll obj/main.o
 	@rmdir obj
 	@echo clean lemon $(OBJS)

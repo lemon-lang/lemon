@@ -21,12 +21,16 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifndef STATICLINKED
+#if !defined(STATICLIB) && !defined(WINDOWS)
 #include <dlfcn.h>
 #endif
 
 #ifdef LINUX
 #include <linux/limits.h> /* PATH_MAX */
+#endif
+
+#ifdef WINDOWS
+#include <windows.h>
 #endif
 
 static int
@@ -125,12 +129,23 @@ resolve_module_path(struct lemon *lemon, struct syntax *node, char *path)
 	resolved_name = arena_alloc(lemon, lemon->l_arena, PATH_MAX);
 	memset(resolved_name, 0, PATH_MAX);
 
+#ifdef WINDOWS
+	if (!GetFullPathName(node->filename, PATH_MAX, resolved_name, NULL)) {
+		return NULL;
+	}
+	resolved_path = resolved_name;
+#else
 	resolved_path = realpath(node->filename, resolved_name);
+#endif
 	if (!resolved_path) {
 		return NULL;
 	}
 
+#ifdef WINDOWS
+	first = strrchr(resolved_path, '\\');
+#else
 	first = strrchr(resolved_path, '/');
+#endif
 	assert(first);
 
 	first[1] = '\0';
@@ -139,7 +154,7 @@ resolve_module_path(struct lemon *lemon, struct syntax *node, char *path)
 	return resolved_path;
 }
 
-#ifndef STATICLINKED
+#ifndef STATICLIB
 static int
 module_path_is_native(struct lemon *lemon, char *path)
 {
@@ -2199,19 +2214,28 @@ compiler_import_stmt(struct lemon *lemon, struct syntax *node)
 		return 1;
 	}
 
-#ifndef STATICLINKED
+#ifndef STATICLIB
 	if (module_path_is_native(lemon, module_path)) {
 		typedef struct lobject *(*module_init_t)(struct lemon *);
 		void *handle;
 		char *init_name;
 		module_init_t module_init;
 
+#ifdef WINDOWS
+		handle = LoadLibrary(module_path);
+		if (handle == NULL) {
+			fprintf(stderr, "LoadLibrary: %s fail\n", module_path);
+
+			return 0;
+		}
+#else
 		handle = dlopen(module_path, RTLD_NOW);
 		if (handle == NULL) {
 			fprintf(stderr, "dlopen: %s\n", dlerror());
 
 			return 0;
 		}
+#endif
 		module_name = resolve_module_name(lemon, module_path);
 
 		init_name = arena_alloc(lemon, lemon->l_arena, LEMON_NAME_MAX);
@@ -2221,8 +2245,12 @@ compiler_import_stmt(struct lemon *lemon, struct syntax *node)
 		 * cast 'void *' -> 'uintptr_t' -> function pointer
 		 * can make compiler happy
 		 */
+#ifdef WINDOWS
+		module_init = (module_init_t)GetProcAddress(handle, init_name);
+#else
 		module_init = (module_init_t)(uintptr_t)dlsym(handle,
 		                                              init_name);
+#endif
 		if (!module_init) {
 			return 0;
 		}

@@ -921,10 +921,13 @@ lstring_has_item(struct lemon *lemon,
                  struct lobject *self,
                  struct lobject *items)
 {
-	struct lobject *argv[1];
+	struct lobject *location;
 
-	argv[0] = items;
-	return lstring_find(lemon, self, 1, argv);
+	location = lstring_find(lemon, self, 1, &items);
+	if (linteger_to_long(lemon, location) == -1) {
+		return lemon->l_false;
+	}
+	return lemon->l_true;
 }
 
 static struct lobject *

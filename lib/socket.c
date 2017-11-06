@@ -9,9 +9,35 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#ifdef WINDOWS
+#define _WIN32_WINNT 0x501
+#include <Windows.h>
+#include <Winsock2.h>
+#include <Ws2tcpip.h>
+typedef int socklen_t;
+#else
+#include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
+
+#ifndef INET6_ADDRSTRLEN
+#define INET6_ADDRSTRLEN 46
+#endif
+
+#ifndef SHUT_RD
+#define SHUT_RD 0
+#endif
+
+#ifndef SHUT_WR
+#define SHUT_WR 1
+#endif
+
+#ifndef SHUT_RDWR
+#define SHUT_RDWR 2
+#endif
 
 static struct lobject *
 socket_socket(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
@@ -53,7 +79,7 @@ socket_socket(struct lemon *lemon, struct lobject *self, int argc, struct lobjec
 	fd = socket(domain, type, protocol);
 
 	opt = 1;
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) != 0) {
+	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) != 0) {
 		perror("setsockopt");
 	}
 
@@ -116,7 +142,7 @@ socket_connect(struct lemon *lemon, struct lobject *self, int argc, struct lobje
 	long port;
 	const char *host;
 
-        struct sockaddr_in addr;
+	struct sockaddr_in addr;
 
 	if (argc != 3) {
 		return lobject_error_argument(lemon, "connect() require addr and port");
@@ -155,7 +181,14 @@ socket_accept(struct lemon *lemon, struct lobject *a, int argc, struct lobject *
 
 	}
 
-	if (inet_ntop(addr.sin_family, &addr.sin_addr, buffer, length)) {
+	if (!getnameinfo((struct sockaddr *)&addr,
+	                 sizeof(addr),
+	                 buffer,
+	                 sizeof(buffer),
+	                 NULL,
+	                 0,
+	                 NI_NUMERICHOST))
+	{
 		items[0] = lstring_create(lemon, buffer, strlen(buffer));
 		items[1] = linteger_create_from_long(lemon, ntohs(addr.sin_port));
 		items[1] = larray_create(lemon, 2, items);
@@ -228,6 +261,16 @@ socket_module(struct lemon *lemon)
 {
 	struct lobject *name;
 	struct lobject *module;
+
+#ifdef WINDOWS
+	WSADATA wsa;
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
+		printf("Failed. Error Code : %d", WSAGetLastError());
+
+		return NULL;
+	}
+#endif
 
 	module = lmodule_create(lemon, lstring_create(lemon, "socket", 6));
 

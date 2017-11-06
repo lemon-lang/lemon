@@ -487,7 +487,7 @@ linteger_shl(struct lemon *lemon, struct lobject *a, struct lobject *b)
 			return lobject_error_arithmetic(lemon, fmt, a, b);
 		}
 
-		if ((lb >= LONG_BIT) || (la > (LONG_MAX >> lb))) {
+		if ((lb >= (long)sizeof(la) * 8) || (la > (LONG_MAX >> lb))) {
 			goto promot;
 		}
 
