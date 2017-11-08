@@ -16,7 +16,7 @@ Getting Source
 $ git clone https://github.com/lemon-lang/lemon.git
 ```
 
-Build Instructions         
+Build Instructions
 ------------------
 ```
 make
@@ -33,10 +33,20 @@ make DEBUG=0 STATIC=0 USE_MALLOC=0 MODULE_OS=1 MODULE_SOCKET=1
 * `MODULE_OS`, POSIX builtin os library
 * `MODULE_SOCKET`, BSD Socket builtin library
 
+Windows Platform
+----------------
+
+Lemon can build on Windows via [TDM-GCC](http://tdm-gcc.tdragon.net/download),
+getting source code and use command
+
+```
+mingw32-make
+```
+
 Porting
 -------
 
-Porting `lib/os.c` and `lib/socket.c` to non-POSIX environment.
+`lib/os.c` and `lib/socket.c` are support POSIX and Windows environment.
 
 Contributing
 ------------
