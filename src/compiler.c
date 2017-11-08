@@ -20,6 +20,7 @@
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #if !defined(STATICLIB) && !defined(WINDOWS)
 #include <dlfcn.h>
@@ -31,6 +32,9 @@
 
 #ifdef WINDOWS
 #include <windows.h>
+#include <Shlwapi.h>
+#else
+#include <unistd.h>
 #endif
 
 static int
@@ -84,7 +88,11 @@ resolve_module_name(struct lemon *lemon, char *path)
 
 	name = arena_alloc(lemon, lemon->l_arena, LEMON_NAME_MAX + 1);
 
+#ifdef WINDOWS
+	first = strrchr(path, '\\');
+#else
 	first = strrchr(path, '/');
+#endif
 	if (!first) {
 		first = path;
 	} else {
@@ -119,11 +127,49 @@ static char *
 resolve_module_path(struct lemon *lemon, struct syntax *node, char *path)
 {
 	char *first;
+	char delimiter;
 	char *resolved_name;
 	char *resolved_path;
 
-	if (path[0] != '.') {
+	/*
+	 * import 'xxx';
+	 * check working directory
+	 */
+#ifdef WINDOWS
+	if (path[0] != '.' && PathFileExists(path)) {
 		return path;
+	}
+	delimiter = '\\';
+#else
+	if (path[0] != '.' && access(path, O_RDONLY) == 0) {
+		return path;
+	}
+	delimiter = '/';
+#endif
+	/*
+	 * import 'xxx';
+	 * not in working directory check LEMON_PATH environment
+	 */
+	if (path[0] != '.') {
+#ifdef WINDOWS
+		char environment[PATH_MAX];
+
+		GetEnvironmentVariable("LEMON_PATH", environment, PATH_MAX);
+#else
+		char *environment;
+
+		environment = getenv("LEMON_PATH");
+#endif
+		resolved_path = arena_alloc(lemon, lemon->l_arena, PATH_MAX);
+		memset(resolved_path, 0, PATH_MAX);
+		snprintf(resolved_path,
+		         PATH_MAX,
+		         "%s%c%s",
+		         environment,
+		         delimiter,
+		         path);
+
+		return resolved_path;
 	}
 
 	resolved_name = arena_alloc(lemon, lemon->l_arena, PATH_MAX);
@@ -141,11 +187,7 @@ resolve_module_path(struct lemon *lemon, struct syntax *node, char *path)
 		return NULL;
 	}
 
-#ifdef WINDOWS
-	first = strrchr(resolved_path, '\\');
-#else
-	first = strrchr(resolved_path, '/');
-#endif
+	first = strrchr(resolved_path, delimiter);
 	assert(first);
 
 	first[1] = '\0';
