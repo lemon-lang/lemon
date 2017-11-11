@@ -154,11 +154,19 @@ resolve_module_path(struct lemon *lemon, struct syntax *node, char *path)
 #ifdef WINDOWS
 		char environment[PATH_MAX];
 
-		GetEnvironmentVariable("LEMON_PATH", environment, PATH_MAX);
+		if (!GetEnvironmentVariable("LEMON_PATH",
+		                            environment,
+		                            PATH_MAX))
+		{
+			return path;
+		}
 #else
 		char *environment;
 
 		environment = getenv("LEMON_PATH");
+		if (!environment) {
+			return path;
+		}
 #endif
 		resolved_path = arena_alloc(lemon, lemon->l_arena, PATH_MAX);
 		memset(resolved_path, 0, PATH_MAX);
@@ -168,6 +176,15 @@ resolve_module_path(struct lemon *lemon, struct syntax *node, char *path)
 		         environment,
 		         delimiter,
 		         path);
+#ifdef WINDOWS
+		if (!PathFileExists(resolved_path)) {
+			return path;
+		}
+#else
+		if (access(resolved_path, O_RDONLY) != 0) {
+			return path;
+		}
+#endif
 
 		return resolved_path;
 	}

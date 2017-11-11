@@ -11,9 +11,11 @@
 #include <unistd.h>
 
 #ifdef WINDOWS
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x501
-#include <Windows.h>
+#endif
 #include <Winsock2.h>
+#include <Windows.h>
 #include <Ws2tcpip.h>
 typedef int socklen_t;
 #else
