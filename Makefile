@@ -5,7 +5,7 @@ LDFLAGS = -lm
 ifeq ($(OS),Windows_NT)
 	CC = gcc
 	CFLAGS += -DWINDOWS
-	LDFLAGS += -lws2_32
+	LDFLAGS += -lws2_32 -lShlwapi
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
