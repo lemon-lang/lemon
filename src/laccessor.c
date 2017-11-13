@@ -84,25 +84,27 @@ laccessor_call(struct lemon *lemon,
 	callable = NULL;
 
 	/* bind setter and getter */
-	if (self->self) {
-		for (i = 0; i < self->count; i++) {
-			callable = self->items[i];
-			if (lobject_is_function(lemon, callable)) {
-				callable = lfunction_bind(lemon,
-				                          callable,
-				                          self->self);
-				if (!callable) {
-					return NULL;
-				}
+	for (i = 0; i < self->count; i++) {
+		callable = self->items[i];
+
+		/* binding self to bare function */
+		if (self->self &&
+		    lobject_is_function(lemon, callable) &&
+		    !((struct lfunction *)callable)->self)
+		{
+			callable = lfunction_bind(lemon, callable, self->self);
+			if (!callable) {
+				return NULL;
 			}
 		}
-	}
 
-	/*
-	 * make frame call getter and setter, last is direct call
-	 * don't need a frame
-	 */
-	for (i = 0; i < self->count - 1; i++) {
+		/*
+		 * make frame call getter and setter, last is direct call
+		 * don't need a frame
+		 */
+		if (i == self->count - 1) {
+			break;
+		}
 		frame = lemon_machine_push_new_frame(lemon,
 		                                     callable,
 		                                     value,
