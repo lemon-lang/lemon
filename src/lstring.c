@@ -848,28 +848,6 @@ lstring_endswith(struct lemon *lemon,
 }
 
 static struct lobject *
-lstring_eq(struct lemon *lemon, struct lstring *a, struct lstring *b)
-{
-	if (!lobject_is_string(lemon, (struct lobject *)a)) {
-		return lemon->l_false;
-	}
-
-	if (!lobject_is_string(lemon, (struct lobject *)b)) {
-		return lemon->l_false;
-	}
-
-	if (a->length != b->length) {
-		return lemon->l_false;
-	}
-
-	if (memcmp(a->buffer, b->buffer, a->length) != 0) {
-		return lemon->l_false;
-	}
-
-	return lemon->l_true;
-}
-
-static struct lobject *
 lstring_add(struct lemon *lemon, struct lstring *a, struct lstring *b)
 {
 	struct lstring *string;
@@ -1042,9 +1020,36 @@ lstring_method(struct lemon *lemon,
 {
 #define cast(a) ((struct lstring *)(a))
 
+#define cmpop(op) do {                                            \
+	if (lobject_is_string(lemon, argv[0])) {                  \
+		if (strcmp(lstring_to_cstr(lemon, self),          \
+		           lstring_to_cstr(lemon, argv[0])) op 0) \
+		{                                                 \
+			return lemon->l_true;                     \
+		}                                                 \
+		return lemon->l_false;                            \
+	}                                                         \
+	return lobject_default(lemon, self, method, argc, argv);  \
+} while (0)
+
 	switch (method) {
+	case LOBJECT_METHOD_LT:
+		cmpop(<);
+
+	case LOBJECT_METHOD_LE:
+		cmpop(<=);
+
 	case LOBJECT_METHOD_EQ:
-		return lstring_eq(lemon, cast(self), cast(argv[0]));
+		cmpop(==);
+
+	case LOBJECT_METHOD_NE:
+		cmpop(!=);
+
+	case LOBJECT_METHOD_GE:
+		cmpop(>=);
+
+	case LOBJECT_METHOD_GT:
+		cmpop(>);
 
 	case LOBJECT_METHOD_ADD:
 		return lstring_add(lemon, cast(self), cast(argv[0]));
