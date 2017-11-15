@@ -24,45 +24,32 @@
 static struct lobject *
 os_open(struct lemon *lemon, struct lobject *self, int argc, struct lobject *argv[])
 {
-	int i;
-	int r;
-	int w;
-	int a;
 	int fd;
-	int flag;
-	long length;
-	const char *buffer;
+	int oflag;
+	int mode;
 
-	flag = 0;
-	if (argc == 2) {
-		length = lstring_length(lemon, argv[1]);
-		buffer = lstring_to_cstr(lemon, argv[1]);
-
-		r = w = a = 0;
-		for (i = 0; i < length; i++) {
-			if (buffer[i] == 'r') {
-				a = 1;
-			}
-			if (buffer[i] == 'w') {
-				w = 1;
-			}
-			if (buffer[i] == 'a') {
-				a = 1;
-			}
-		}
-		if (r && w) {
-			flag = O_RDWR;
-		} else if (a) {
-			flag = O_APPEND;
-		}
-	}
-	if (flag == 0) {
-		flag = O_RDONLY;
+#if WINDOWS
+	mode = S_IREAD | S_IWRITE;
+#else
+	mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+#endif
+	if (argc == 3) {
+		mode = linteger_to_long(lemon, argv[2]);
 	}
 
-	fd = open(lstring_to_cstr(lemon, argv[0]), flag);
+	if (argc >= 2) {
+		oflag = linteger_to_long(lemon, argv[1]);
+	} else {
+		oflag = O_RDONLY;
+	}
+
+	if (oflag & O_CREAT) {
+		fd = open(lstring_to_cstr(lemon, argv[0]), oflag, mode);
+	} else {
+		fd = open(lstring_to_cstr(lemon, argv[0]), oflag);
+	}
 	if (fd == -1) {
-		return lobject_error_type(lemon, "open '%@' fail", argv[0]);
+		return lobject_error_type(lemon, "open '%@' fail: %s", argv[0], strerror(errno));
 	}
 
 	return linteger_create_from_long(lemon, fd);
@@ -444,110 +431,85 @@ os_exit(struct lemon *lemon, struct lobject *self, int argc, struct lobject *arg
 struct lobject *
 os_module(struct lemon *lemon)
 {
+	char *cstr;
 	struct lobject *name;
 	struct lobject *module;
 
+#define SET_FUNCTION(value) do {                                             \
+	cstr = #value ;                                                      \
+	name = lstring_create(lemon, cstr, strlen(cstr));                    \
+	lobject_set_attr(lemon,                                              \
+	                 module,                                             \
+	                 name,                                               \
+	                 lfunction_create(lemon, name, NULL, os_ ## value)); \
+} while(0)
+
+#define SET_INTEGER(value) do {                                    \
+	cstr = #value ;                                            \
+	name = lstring_create(lemon, cstr, strlen(cstr));          \
+	lobject_set_attr(lemon,                                    \
+	                 module,                                   \
+	                 name,                                     \
+	                 linteger_create_from_long(lemon, value)); \
+} while(0)
+
 	module = lmodule_create(lemon, lstring_create(lemon, "os", 2));
 
-	name = lstring_create(lemon, "open", 4);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_open));
+	SET_FUNCTION(open);
+	SET_FUNCTION(read);
+	SET_FUNCTION(write);
+	SET_FUNCTION(close);
 
-	name = lstring_create(lemon, "read", 4);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_read));
-
-	name = lstring_create(lemon, "write", 5);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_write));
-
-	name = lstring_create(lemon, "close", 5);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_close));
+	SET_FUNCTION(time);
+	SET_FUNCTION(ctime);
+	SET_FUNCTION(gmtime);
+	SET_FUNCTION(strftime);
+	SET_FUNCTION(select);
+	SET_FUNCTION(realpath);
+	SET_FUNCTION(exit);
 
 #ifndef WINDOWS
-	name = lstring_create(lemon, "fcntl", 5);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_fcntl));
+	SET_FUNCTION(fcntl);
 #endif
 
-	name = lstring_create(lemon, "time", 4);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_time));
+	/* common */
+	SET_INTEGER(EXIT_SUCCESS);
+	SET_INTEGER(EXIT_FAILURE);
 
-	name = lstring_create(lemon, "ctime", 5);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_ctime));
+	SET_INTEGER(O_RDONLY);
+	SET_INTEGER(O_WRONLY);
+	SET_INTEGER(O_RDWR);
+	SET_INTEGER(O_APPEND);
+	SET_INTEGER(O_CREAT);
+	SET_INTEGER(O_TRUNC);
+	SET_INTEGER(O_EXCL);
+#ifdef WINDOWS
+	SET_INTEGER(O_TEXT);
+	SET_INTEGER(O_BINARY);
 
-	name = lstring_create(lemon, "gmtime", 6);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_gmtime));
+	SET_INTEGER(S_IREAD);
+	SET_INTEGER(S_IWRITE);
+#else
+	SET_INTEGER(O_NONBLOCK);
+	SET_INTEGER(O_NOFOLLOW);
+	SET_INTEGER(O_CLOEXEC);
 
-	name = lstring_create(lemon, "strftime", 8);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_strftime));
+	SET_INTEGER(S_IRWXU);
+	SET_INTEGER(S_IRUSR);
+	SET_INTEGER(S_IWUSR);
+	SET_INTEGER(S_IXUSR);
+	SET_INTEGER(S_IRWXG);
+	SET_INTEGER(S_IRGRP);
+	SET_INTEGER(S_IWGRP);
+	SET_INTEGER(S_IXGRP);
+	SET_INTEGER(S_IRWXO);
+	SET_INTEGER(S_IROTH);
+	SET_INTEGER(S_IWOTH);
+	SET_INTEGER(S_IXOTH);
 
-	name = lstring_create(lemon, "select", 6);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_select));
-
-	name = lstring_create(lemon, "realpath", 8);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_realpath));
-
-#ifndef WINDOWS
-	name = lstring_create(lemon, "F_GETFL", 7);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 linteger_create_from_long(lemon, F_GETFL));
-
-	name = lstring_create(lemon, "O_NONBLOCK", 10);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 linteger_create_from_long(lemon, O_NONBLOCK));
+	SET_INTEGER(F_GETFL);
+	SET_INTEGER(O_NONBLOCK);
 #endif
-
-	name = lstring_create(lemon, "exit", 4);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 lfunction_create(lemon, name, NULL, os_exit));
-
-	name = lstring_create(lemon, "EXIT_SUCCESS", 12);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 linteger_create_from_long(lemon, EXIT_SUCCESS));
-
-	name = lstring_create(lemon, "EXIT_FAILURE", 12);
-	lobject_set_attr(lemon,
-	                 module,
-	                 name,
-	                 linteger_create_from_long(lemon, EXIT_FAILURE));
 
 	return module;
 }

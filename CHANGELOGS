@@ -3,6 +3,7 @@
 	* add function make machine pause and continue on frame
 	* add Windows support
 	* add LEMON_HOME environment variable resolve module path
+	* change os.open behavior like POSIX open
 
 2017-10-07: Version 0.0.1
 
