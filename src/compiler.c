@@ -1646,6 +1646,7 @@ compiler_return_stmt(struct lemon *lemon, struct syntax *node)
 	struct syntax *try_enclosing;
 	struct syntax *stmt_enclosing;
 	struct syntax *space_enclosing;
+	struct syntax *block_stmt;
 
 	space_enclosing = lemon->l_space_enclosing;
 	if (space_enclosing->kind != SYNTAX_KIND_DEFINE_STMT) {
@@ -1657,39 +1658,38 @@ compiler_return_stmt(struct lemon *lemon, struct syntax *node)
 	}
 
 	try_enclosing = lemon->l_try_enclosing;
-	if (try_enclosing && try_enclosing->l_finally) {
-		/* compiling return's expr but not return */
-		if (node->u.return_stmt.expr) {
-			if (!compiler_expr(lemon, node->u.return_stmt.expr)) {
-				return 0;
-			}
+	while (try_enclosing) {
+		block_stmt = try_enclosing->u.try_stmt.finally_block_stmt;
+		if (block_stmt && !compiler_block(lemon, block_stmt)) {
+			return 0;
 		}
-		generator_emit_jmp(lemon, try_enclosing->l_finally);
-	} else {
-		stmt_enclosing = lemon->l_stmt_enclosing;
-		lemon->l_stmt_enclosing = node;
-		if (node->u.return_stmt.expr) {
-			struct syntax *expr;
+		try_enclosing = try_enclosing->parent;
+	}
 
-			expr = node->u.return_stmt.expr;
-			if (expr->kind == SYNTAX_KIND_CALL) {
-				if (!compiler_tailcall(lemon, expr)) {
-					return 0;
-				}
-			} else {
-				if (!compiler_expr(lemon, expr)) {
-					return 0;
-				}
+	stmt_enclosing = lemon->l_stmt_enclosing;
+	lemon->l_stmt_enclosing = node;
+	if (node->u.return_stmt.expr) {
+		struct syntax *expr;
+
+		expr = node->u.return_stmt.expr;
+		if (expr->kind == SYNTAX_KIND_CALL) {
+			if (!compiler_tailcall(lemon, expr)) {
+				return 0;
 			}
 		} else {
-			if (!compiler_const_object(lemon, lemon->l_nil)) {
+			if (!compiler_expr(lemon, expr)) {
 				return 0;
 			}
 		}
-		node->has_return = 1;
-		generator_emit_opcode(lemon, OPCODE_RETURN);
-		lemon->l_stmt_enclosing = stmt_enclosing;
+	} else {
+		if (!compiler_const_object(lemon, lemon->l_nil)) {
+			return 0;
+		}
 	}
+	node->has_return = 1;
+	generator_emit_opcode(lemon, OPCODE_RETURN);
+	lemon->l_stmt_enclosing = stmt_enclosing;
+
 	/* remove all code after return stmt */
 	node->sibling = NULL;
 
@@ -1943,6 +1943,7 @@ compiler_try_stmt(struct lemon *lemon, struct syntax *node)
 	struct syntax *try_enclosing;
 	struct syntax *finally_block_stmt;
 
+	node->parent = lemon->l_try_enclosing;
 	try_enclosing = lemon->l_try_enclosing;
 	lemon->l_try_enclosing = node;
 
@@ -1959,9 +1960,15 @@ compiler_try_stmt(struct lemon *lemon, struct syntax *node)
 
 	finally_block_stmt = node->u.try_stmt.finally_block_stmt;
 	if (finally_block_stmt) {
+		/*
+		 * Don't want current try_stmt if
+		 * finally_block_stmt has return_stmt
+		 */
+		lemon->l_try_enclosing = node->parent;
 		if (!compiler_block(lemon, finally_block_stmt)) {
 			return 0;
 		}
+		lemon->l_try_enclosing = node;
 	}
 	generator_emit_opcode(lemon, OPCODE_UNTRY);
 	generator_emit_jmp(lemon, l_exit);
@@ -2017,9 +2024,11 @@ compiler_try_stmt(struct lemon *lemon, struct syntax *node)
 
 	/* rethrow finally */
 	if (finally_block_stmt) {
+		lemon->l_try_enclosing = node->parent;
 		if (!compiler_block(lemon, finally_block_stmt)) {
 			return 0;
 		}
+		lemon->l_try_enclosing = node;
 	}
 	if (try_enclosing && try_enclosing->l_catch) {
 		/* upper level catch block */
@@ -2061,7 +2070,7 @@ compiler_block(struct lemon *lemon, struct syntax *node)
 {
 	struct syntax *stmt;
 
-	scope_enter(lemon, SCOPE_MODULE);
+	scope_enter(lemon, SCOPE_BLOCK);
 	for (stmt = node->u.block_stmt.stmt_list;
 	     stmt;
 	     stmt = stmt->sibling)

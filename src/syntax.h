@@ -164,6 +164,7 @@ struct syntax {
 	long column;
 	char *filename;
 
+	struct syntax *parent;
 	struct syntax *sibling;
 
 	/*
